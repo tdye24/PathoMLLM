@@ -3,18 +3,17 @@
 # 图像 resize 由 qwen_vl_utils 在线完成；jsonl images 为 s3://（mox 读入内存）。
 set -euo pipefail
 
-# ==================== 路径配置（按需修改） ====================
-# PROJECT_ROOT 自动按本脚本位置推导（train/ 的上级目录），换机器 / 换 clone 路径都不用改
+# ==================== 路径配置（全部相对 PathoMLLM = PROJECT_ROOT） ====================
+# PROJECT_ROOT 自动按本脚本位置推导（train/ 的上级目录）
 TRAIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "${TRAIN_DIR}")"
-# 下面三项均可被外部环境变量覆盖（ModelArts boot 脚本 run_modelarts.sh 会注入）
-MODEL_ID="${MODEL_ID:-${PROJECT_ROOT}/model/Qwen3.5-9B}"                    # 基座模型（PathoMLLM/model 下）
-SWIFT_JSONL="${SWIFT_JSONL:-${PROJECT_ROOT}/data/roi_cls_vqa.jsonl}"         # 训练 jsonl（messages + images + <image>）
-OUTPUT_DIR="${OUTPUT_DIR:-${PROJECT_ROOT}/outputs/sft}"                      # checkpoint / 日志输出目录
-# 预处理 map 缓存根目录（ms-swift 读 MODELSCOPE_CACHE → {根}/datasets/.../*.arrow）
-# 运行前可覆盖：MODELSCOPE_CACHE=/other/path bash train/sft.sh
+# 均可被外部环境变量覆盖（run_modelarts.sh 会注入）
+MODEL_ID="${MODEL_ID:-${PROJECT_ROOT}/model/Qwen3.5-9B}"
+SWIFT_JSONL="${SWIFT_JSONL:-${PROJECT_ROOT}/data/roi_cls_vqa.jsonl}"
+OUTPUT_DIR="${OUTPUT_DIR:-${PROJECT_ROOT}/outputs/sft}"
 export MODELSCOPE_CACHE="${MODELSCOPE_CACHE:-${PROJECT_ROOT}/cache/modelscope}"
-DATASET_MAP_DIR="${MODELSCOPE_CACHE}/datasets"                  # jsonl 加载 + map(lengths) 落盘位置
+DATASET_MAP_DIR="${MODELSCOPE_CACHE}/datasets"
+LOG_DIR="${PROJECT_ROOT}/logs/sft"
 
 LIMIT_SAMPLES=0   # 冒烟：设 64 只训前 64 条；0 = 全量
 NUM_GPUS="${MA_NUM_GPUS:-8}"   # 单节点 GPU 数（对应 NPROC_PER_NODE；ModelArts 注入 MA_NUM_GPUS）
@@ -203,7 +202,6 @@ if bad:
 PY
 fi
 
-LOG_DIR="${PROJECT_ROOT}/logs/sft"
 mkdir -p "${LOG_DIR}"
 TIME="$(date +"%Y%m%d_%H%M%S")"
 
