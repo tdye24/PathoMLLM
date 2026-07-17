@@ -7,16 +7,30 @@ set -euo pipefail
 # PROJECT_ROOT 自动按本脚本位置推导（train/ 的上级目录），换机器 / 换 clone 路径都不用改
 TRAIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "${TRAIN_DIR}")"
-MODEL_ID="/home/ma-user/work/yetiandi/Models/Qwen/Qwen3.5-9B"   # 基座模型
-SWIFT_JSONL="${PROJECT_ROOT}/data/train.jsonl"                  # 训练 jsonl（messages + images + <image>）
-OUTPUT_DIR="${PROJECT_ROOT}/outputs/sft"                        # checkpoint / 日志输出目录
+# 下面三项均可被外部环境变量覆盖（ModelArts boot 脚本 run_modelarts.sh 会注入）
+MODEL_ID="${MODEL_ID:-/home/ma-user/work/yetiandi/Models/Qwen/Qwen3.5-9B}"   # 基座模型
+SWIFT_JSONL="${SWIFT_JSONL:-${PROJECT_ROOT}/data/train.jsonl}"               # 训练 jsonl（messages + images + <image>）
+OUTPUT_DIR="${OUTPUT_DIR:-${PROJECT_ROOT}/outputs/sft}"                      # checkpoint / 日志输出目录
 # 预处理 map 缓存根目录（ms-swift 读 MODELSCOPE_CACHE → {根}/datasets/.../*.arrow）
 # 运行前可覆盖：MODELSCOPE_CACHE=/other/path bash train/sft.sh
 export MODELSCOPE_CACHE="${MODELSCOPE_CACHE:-${PROJECT_ROOT}/cache/modelscope}"
 DATASET_MAP_DIR="${MODELSCOPE_CACHE}/datasets"                  # jsonl 加载 + map(lengths) 落盘位置
 
 LIMIT_SAMPLES=0   # 冒烟：设 64 只训前 64 条；0 = 全量
-NUM_GPUS=8        # 使用的 GPU 数量（对应 NPROC_PER_NODE）
+NUM_GPUS="${MA_NUM_GPUS:-8}"   # 单节点 GPU 数（对应 NPROC_PER_NODE；ModelArts 注入 MA_NUM_GPUS）
+
+# ==================== 分布式（单机 / 多机自动适配） ====================
+# ModelArts 多机作业自动注入：MA_NUM_HOSTS(节点数)、VC_TASK_INDEX(节点序号)、
+#   VC_WORKER_HOSTS(节点域名列表，逗号分隔，取第一个当 master)。
+# 本地单机训练不设这些变量时，自动退化为单机（NNODES=1, NODE_RANK=0, localhost）。
+export NNODES="${MA_NUM_HOSTS:-1}"
+export NODE_RANK="${VC_TASK_INDEX:-0}"
+if [[ -n "${VC_WORKER_HOSTS:-}" ]]; then
+    export MASTER_ADDR="${VC_WORKER_HOSTS%%,*}"
+else
+    export MASTER_ADDR="${MASTER_ADDR:-127.0.0.1}"
+fi
+export MASTER_PORT="${MASTER_PORT:-6060}"
 
 # ==================== batch ====================
 PER_DEVICE_BATCH=4
@@ -26,13 +40,15 @@ export IMAGE_MAX_TOKEN_NUM="${IMAGE_MAX_TOKEN_NUM:-2048}"
 SKIP_GPU_CHECK="${SKIP_GPU_CHECK:-0}"  # 1 = 跳过训练前 GPU 占用检查
 
 # ==================== LoRA ====================
-LORA_RANK=16
-LORA_ALPHA=32
+LORA_RANK=64
+LORA_ALPHA=128
 LORA_DROPOUT=0.05
-# all-linear + freeze_*：LLM + merger 挂 LoRA，ViT 冻结（方案 B）
+# all-linear + freeze_*：LLM + merger 挂 LoRA，ViT 冻结；rank=64 多任务混训
 
 # ==================== 环境 ====================
-export PATH=/home/ma-user/work/yetiandi/envs/qwen35/bin:$PATH
+# 本地 conda 环境（存在才加入 PATH）；ModelArts 上由 run_modelarts.sh 提前 conda activate
+QWEN_ENV_BIN="${QWEN_ENV_BIN:-/home/ma-user/work/yetiandi/envs/qwen35/bin}"
+[[ -d "${QWEN_ENV_BIN}" ]] && export PATH="${QWEN_ENV_BIN}:$PATH"
 mkdir -p "${DATASET_MAP_DIR}"
 # train/ 放 sitecustomize.py，所有 python 子进程（含 dataset map）启动时：
 #   - 放宽 PIL PNG/像素限制
@@ -198,7 +214,8 @@ echo "Output           : ${OUTPUT_DIR}"
 echo "Map cache root   : ${MODELSCOPE_CACHE}"
 echo "Map cache dir    : ${DATASET_MAP_DIR}"
 echo "Vision cap       : IMAGE_MAX_TOKEN_NUM=${IMAGE_MAX_TOKEN_NUM}"
-echo "Batch            : per_device=${PER_DEVICE_BATCH} grad_accum=${GRAD_ACCUM} gpus=${NUM_GPUS} (global=$((PER_DEVICE_BATCH * GRAD_ACCUM * NUM_GPUS)))"
+echo "Distributed      : nnodes=${NNODES} node_rank=${NODE_RANK} master=${MASTER_ADDR}:${MASTER_PORT} gpus/node=${NUM_GPUS}"
+echo "Batch            : per_device=${PER_DEVICE_BATCH} grad_accum=${GRAD_ACCUM} gpus=${NUM_GPUS} nodes=${NNODES} (global=$((PER_DEVICE_BATCH * GRAD_ACCUM * NUM_GPUS * NNODES)))"
 echo "DeepSpeed        : ${DEEPSPEED}"
 echo "LoRA             : rank=${LORA_RANK} alpha=${LORA_ALPHA} dropout=${LORA_DROPOUT}"
 echo "Trainable        : LLM LoRA + merger LoRA (all-linear); ViT frozen"
@@ -211,6 +228,10 @@ echo "Trainable        : LLM LoRA + merger LoRA (all-linear); ViT frozen"
 # --loss_scale ignore_empty_think  上述空 think 块不参与 loss，只对答案算 loss
 # --group_by_length true         相近长度样本组 batch（启动时会 map 算 lengths）
 PYTORCH_CUDA_ALLOC_CONF='expandable_segments:True' \
+NNODES="${NNODES}" \
+NODE_RANK="${NODE_RANK}" \
+MASTER_ADDR="${MASTER_ADDR}" \
+MASTER_PORT="${MASTER_PORT}" \
 NPROC_PER_NODE="${NUM_GPUS}" \
 IMAGE_MAX_TOKEN_NUM="${IMAGE_MAX_TOKEN_NUM}" \
 VIDEO_MAX_TOKEN_NUM=128 \
