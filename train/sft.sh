@@ -8,7 +8,7 @@ set -euo pipefail
 TRAIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "${TRAIN_DIR}")"
 # 下面三项均可被外部环境变量覆盖（ModelArts boot 脚本 run_modelarts.sh 会注入）
-MODEL_ID="${MODEL_ID:-/home/ma-user/work/yetiandi/Models/Qwen/Qwen3.5-9B}"   # 基座模型
+MODEL_ID="${MODEL_ID:-${PROJECT_ROOT}/model/Qwen3.5-9B}"                    # 基座模型（PathoMLLM/model 下）
 SWIFT_JSONL="${SWIFT_JSONL:-${PROJECT_ROOT}/data/roi_cls_vqa.jsonl}"         # 训练 jsonl（messages + images + <image>）
 OUTPUT_DIR="${OUTPUT_DIR:-${PROJECT_ROOT}/outputs/sft}"                      # checkpoint / 日志输出目录
 # 预处理 map 缓存根目录（ms-swift 读 MODELSCOPE_CACHE → {根}/datasets/.../*.arrow）
