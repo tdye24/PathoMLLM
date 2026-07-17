@@ -23,7 +23,7 @@ NUM_GPUS="${MA_NUM_GPUS:-8}"   # 单节点 GPU 数（对应 NPROC_PER_NODE；Mod
 # ModelArts 多机作业自动注入：MA_NUM_HOSTS(节点数)、VC_TASK_INDEX(节点序号)、
 #   VC_WORKER_HOSTS(节点域名列表，逗号分隔，取第一个当 master)。
 # 本地单机训练不设这些变量时，自动退化为单机（NNODES=1, NODE_RANK=0, localhost）。
-export NNODES="${MA_NUM_HOSTS:-1}"
+export NNODES="${MA_NUM_HOSTS:-${VC_WORKER_NUM:-1}}"
 export NODE_RANK="${VC_TASK_INDEX:-0}"
 if [[ -n "${VC_WORKER_HOSTS:-}" ]]; then
     export MASTER_ADDR="${VC_WORKER_HOSTS%%,*}"
