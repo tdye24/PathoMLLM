@@ -36,7 +36,7 @@ export MASTER_PORT="${MASTER_PORT:-6060}"
 PER_DEVICE_BATCH=4
 GRAD_ACCUM=8              # 等效 global batch = 4×8×8 = 256
 DEEPSPEED=zero2
-export IMAGE_MAX_TOKEN_NUM="${IMAGE_MAX_TOKEN_NUM:-2048}"
+export IMAGE_MAX_TOKEN_NUM="${IMAGE_MAX_TOKEN_NUM:-1024}"  # 单图视觉 token 上限（对齐论文 WSI=1024）
 SKIP_GPU_CHECK="${SKIP_GPU_CHECK:-0}"  # 1 = 跳过训练前 GPU 占用检查
 
 # ==================== LoRA ====================
