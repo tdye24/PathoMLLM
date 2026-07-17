@@ -9,14 +9,30 @@ into a BytesIO (same pattern as v1 h5 loading).
 from __future__ import annotations
 
 import io
+import os
 import sys
 
+# moxing ships old _pb2 stubs; protobuf>=4 raises without this.
+os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
+
 _patched = False
+_mox = None
+
+
+def _get_mox():
+    global _mox
+    if _mox is not None:
+        return _mox
+    # Must set before first protobuf/moxing import in this process.
+    os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
+    import moxing as mox  # type: ignore[import-untyped]
+
+    _mox = mox
+    return _mox
 
 
 def _read_bytes(path: str) -> bytes:
-    import moxing as mox  # type: ignore[import-untyped]
-
+    mox = _get_mox()
     with mox.file.File(path, "rb") as f:
         data = f.read()
     if not data:
@@ -33,6 +49,9 @@ def apply_remote_image_patch() -> None:
     global _patched
     if _patched:
         return
+
+    # Fail early if moxing cannot import (protobuf clash, missing install, ...)
+    _get_mox()
 
     import swift.template.vision_utils as vu
     from PIL import Image

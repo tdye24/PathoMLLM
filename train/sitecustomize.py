@@ -6,7 +6,11 @@ Pathology images often exceed PIL defaults:
 
 Also patches swift vision loaders for OBS ``s3://`` via moxing.
 """
+import os
 import sys
+
+# Before any moxing/protobuf import (moxing old stubs vs protobuf>=4).
+os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
 
 try:
     from PIL import Image, PngImagePlugin

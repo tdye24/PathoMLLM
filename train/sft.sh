@@ -51,6 +51,8 @@ QWEN_ENV_BIN="${QWEN_ENV_BIN:-/home/ma-user/envs/qwen35/bin}"
 mkdir -p "${DATASET_MAP_DIR}"
 # train/ 放 sitecustomize.py + remote_image_io.py：s3:// 经 mox 读入内存
 export PYTHONPATH="${TRAIN_DIR}:${PROJECT_ROOT}:${PYTHONPATH:-}"
+# moxing 旧 _pb2 与 protobuf>=4 冲突；纯 Python 实现可绕过
+export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION="${PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION:-python}"
 
 # 写入 site-packages/*.pth，保证 torchrun / DataLoader 每个新进程都自动打 patch
 # （仅靠 PYTHONPATH + sitecustomize 在部分环境不可靠）

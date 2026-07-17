@@ -30,6 +30,8 @@ export PATH="${CONDA_ENV}/bin:${PATH}"
 
 cd "${PROJECT_ROOT}"
 export PYTHONPATH="${TRAIN_DIR}:${PROJECT_ROOT}:${PYTHONPATH:-}"
+# moxing 旧 _pb2 与 protobuf>=4 冲突
+export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION="${PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION:-python}"
 
 echo "=== PathoMLLM ModelArts boot ==="
 echo "PROJECT_ROOT      : ${PROJECT_ROOT}"
