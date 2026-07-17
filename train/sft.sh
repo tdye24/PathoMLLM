@@ -4,8 +4,9 @@
 set -euo pipefail
 
 # ==================== 路径配置（按需修改） ====================
-PROJECT_ROOT="/home/ma-user/work/yetiandi/PathoMLLM"
-TRAIN_DIR="${PROJECT_ROOT}/train"
+# PROJECT_ROOT 自动按本脚本位置推导（train/ 的上级目录），换机器 / 换 clone 路径都不用改
+TRAIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "${TRAIN_DIR}")"
 MODEL_ID="/home/ma-user/work/yetiandi/Models/Qwen/Qwen3.5-9B"   # 基座模型
 SWIFT_JSONL="${PROJECT_ROOT}/data/train.jsonl"                  # 训练 jsonl（messages + images + <image>）
 OUTPUT_DIR="${PROJECT_ROOT}/outputs/sft"                        # checkpoint / 日志输出目录
