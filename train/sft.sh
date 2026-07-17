@@ -249,8 +249,8 @@ swift sft \
     --per_device_train_batch_size "${PER_DEVICE_BATCH}" \
     --per_device_eval_batch_size "${PER_DEVICE_BATCH}" \
     --gradient_accumulation_steps "${GRAD_ACCUM}" \
-    --learning_rate 1e-4 \
-    --aligner_lr 1e-4 \
+    --learning_rate 3e-4 \
+    --aligner_lr 3e-4 \
     --lora_rank "${LORA_RANK}" \
     --lora_alpha "${LORA_ALPHA}" \
     --lora_dropout "${LORA_DROPOUT}" \
