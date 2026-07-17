@@ -41,7 +41,7 @@ SKIP_GPU_CHECK="${SKIP_GPU_CHECK:-0}"  # 1 = 跳过训练前 GPU 占用检查
 
 # ==================== LoRA ====================
 LORA_RANK=64
-LORA_ALPHA=128
+LORA_ALPHA=256
 LORA_DROPOUT=0.05
 # all-linear + freeze_*：LLM + merger 挂 LoRA，ViT 冻结；rank=64 多任务混训
 
