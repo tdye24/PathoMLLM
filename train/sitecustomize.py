@@ -1,25 +1,25 @@
-"""Imported via `import sitecustomize` when train/ is on PYTHONPATH.
+"""Imported via `import sitecustomize` when train/ is on PYTHONPATH / site .pth.
 
 Pathology images often exceed PIL defaults:
 - PNG iCCP/ICC metadata: MAX_TEXT_CHUNK too small
 - Large WSI / tile JPEGs: MAX_IMAGE_PIXELS (~179M) decompression bomb check
 
-ms-swift resizes after load; PIL must decode first.
-
-Also patches ``swift.template.vision_utils.load_file`` so jsonl ``images``
-(OBS ``s3://``) are loaded via moxing into memory (same pattern as v1 h5).
+Also patches swift vision loaders for OBS ``s3://`` via moxing.
 """
+import sys
+
 try:
     from PIL import Image, PngImagePlugin
 
     PngImagePlugin.MAX_TEXT_CHUNK = 100 * (1024**2)  # 100 MiB
     Image.MAX_IMAGE_PIXELS = None
-except Exception:
-    pass
+except Exception as exc:  # noqa: BLE001
+    print(f"[sitecustomize] PIL relax failed: {exc}", file=sys.stderr, flush=True)
 
 try:
     from remote_image_io import apply_remote_image_patch
 
     apply_remote_image_patch()
-except Exception:
-    pass
+except Exception as exc:  # noqa: BLE001
+    # Do not swallow — without the patch, every s3:// sample fails.
+    print(f"[sitecustomize] remote_image_io patch FAILED: {exc}", file=sys.stderr, flush=True)

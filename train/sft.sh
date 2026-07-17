@@ -49,10 +49,55 @@ LORA_DROPOUT=0.05
 QWEN_ENV_BIN="${QWEN_ENV_BIN:-/home/ma-user/envs/qwen35/bin}"
 [[ -d "${QWEN_ENV_BIN}" ]] && export PATH="${QWEN_ENV_BIN}:$PATH"
 mkdir -p "${DATASET_MAP_DIR}"
-# train/ 放 sitecustomize.py，所有 python 子进程（含 dataset map）启动时：
-#   - 放宽 PIL PNG/像素限制
-#   - patch qwen_vl_utils.fetch_image：images 经 mox 读入内存（OBS）
+# train/ 放 sitecustomize.py + remote_image_io.py：s3:// 经 mox 读入内存
 export PYTHONPATH="${TRAIN_DIR}:${PROJECT_ROOT}:${PYTHONPATH:-}"
+
+# 写入 site-packages/*.pth，保证 torchrun / DataLoader 每个新进程都自动打 patch
+# （仅靠 PYTHONPATH + sitecustomize 在部分环境不可靠）
+python - <<PY
+import pathlib
+import site
+import sys
+
+train_dir = pathlib.Path(r"${TRAIN_DIR}").resolve()
+candidates = []
+try:
+    candidates.extend(site.getsitepackages())
+except Exception:
+    pass
+try:
+    us = site.getusersitepackages()
+    if us:
+        candidates.append(us)
+except Exception:
+    pass
+candidates.append(str(pathlib.Path(sys.prefix) / "lib" / f"python{sys.version_info.major}.{sys.version_info.minor}" / "site-packages"))
+
+written = False
+for sp in candidates:
+    sp_path = pathlib.Path(sp)
+    if not sp_path.is_dir():
+        continue
+    pth = sp_path / "pathomllm_remote_image.pth"
+    try:
+        pth.write_text(
+            f"{train_dir}\n"
+            "import remote_image_io; remote_image_io.apply_remote_image_patch()\n",
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        print(f"[sft] skip {pth}: {exc}", flush=True)
+        continue
+    print(f"[sft] wrote {pth}", flush=True)
+    written = True
+    break
+if not written:
+    print("[sft] WARN: could not write site .pth; relying on PYTHONPATH/sitecustomize", flush=True)
+
+from remote_image_io import ensure_patched
+ensure_patched()
+print("[sft] remote_image_io preflight OK", flush=True)
+PY
 
 # ms-swift 导入 FSDPModule：torch>=2.6 在 torch.distributed.fsdp；
 # torch 2.4/2.5 仅在 torch.distributed._composable.fsdp（pip 版 ms-swift 需启动时 patch）
