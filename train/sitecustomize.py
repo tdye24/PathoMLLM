@@ -4,10 +4,10 @@ Pathology images often exceed PIL defaults:
 - PNG iCCP/ICC metadata: MAX_TEXT_CHUNK too small
 - Large WSI / tile JPEGs: MAX_IMAGE_PIXELS (~179M) decompression bomb check
 
-ms-swift + qwen_vl_utils resize after load; PIL must decode first.
+ms-swift resizes after load; PIL must decode first.
 
-Also patches qwen_vl_utils.fetch_image so jsonl ``images`` (OBS ``s3://``)
-are loaded via moxing into memory (same pattern as v1 h5 loading).
+Also patches ``swift.template.vision_utils.load_file`` so jsonl ``images``
+(OBS ``s3://``) are loaded via moxing into memory (same pattern as v1 h5).
 """
 try:
     from PIL import Image, PngImagePlugin
