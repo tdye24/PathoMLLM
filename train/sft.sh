@@ -224,7 +224,7 @@ echo "Trainable        : LLM LoRA + merger LoRA (all-linear); ViT frozen"
 # --load_from_cache_file true    map 结果写入 DATASET_MAP_DIR（见上方 MODELSCOPE_CACHE），第二轮起加速
 # --add_non_thinking_prefix true  数据 assistant 为纯答案时，训练前自动补空 <think> 块
 # --loss_scale ignore_empty_think  上述空 think 块不参与 loss，只对答案算 loss
-# --group_by_length true         相近长度样本组 batch（启动时会 map 算 lengths）
+# --group_by_length false        跳过启动时的全量 length 预处理
 PYTORCH_CUDA_ALLOC_CONF='expandable_segments:True' \
 NNODES="${NNODES}" \
 NODE_RANK="${NODE_RANK}" \
@@ -259,7 +259,7 @@ swift sft \
     --freeze_llm false \
     --gradient_checkpointing true \
     --attn_impl flash_attn \
-    --group_by_length true \
+    --group_by_length false \
     --output_dir "${OUTPUT_DIR}" \
     --logging_steps 5 \
     --save_steps "${SAVE_STEPS}" \
