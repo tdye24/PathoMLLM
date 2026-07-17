@@ -9,17 +9,19 @@
 #
 # 图像仍在 jsonl 里写 s3://，训练时 mox 在线读，不必放进代码目录。
 #
-# 创建训练作业 → 代码目录：
-#   s3://bucket-6038/00CV-stuff/yetiandi_y00959450/PathoMLLM/
-# 启动命令：
-#   bash /home/ma-user/modelarts/user-job-dir/PathoMLLM/train/run_modelarts.sh
-set -euo pipefail
+# 运行参数可选:
+#   conda_env=/home/ma-user/work/yetiandi/envs/qwen35
+#   s3_output_dir=s3://bucket-6038/00CV-stuff/yetiandi_y00959450/PathoMLLM/outputs/run001/
 
-# ==================== conda ====================
-CONDA_ENV="${conda_env:-${CONDA_ENV:-qwen35}}"
+# ==================== conda（你的环境是路径式激活，不是环境名） ====================
+# 等价于: conda activate /home/ma-user/work/yetiandi/envs/qwen35
+# 网页超参可覆盖: conda_env=/home/ma-user/work/yetiandi/envs/qwen35
+CONDA_ENV="${conda_env:-${CONDA_ENV:-/home/ma-user/work/yetiandi/envs/qwen35}}"
 export PATH=/home/ma-user/anaconda3/bin:$PATH
 source /home/ma-user/anaconda3/etc/profile.d/conda.sh
 conda activate "${CONDA_ENV}"
+export PATH="${CONDA_ENV}/bin:${PATH}"
+echo "[run_modelarts] conda: ${CONDA_ENV}  python=$(which python)  swift=$(command -v swift || echo MISSING)"
 
 # ==================== 定位代码（ModelArts 已把 PathoMLLM/ 拷到 user-job-dir） ====================
 TRAIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
