@@ -47,7 +47,7 @@ LORA_DROPOUT=0.05
 
 # ==================== 环境 ====================
 # 本地 conda 环境（存在才加入 PATH）；ModelArts 上由 run_modelarts.sh 提前 conda activate
-QWEN_ENV_BIN="${QWEN_ENV_BIN:-/home/ma-user/work/yetiandi/envs/qwen35/bin}"
+QWEN_ENV_BIN="${QWEN_ENV_BIN:-/home/ma-user/envs/qwen35/bin}"
 [[ -d "${QWEN_ENV_BIN}" ]] && export PATH="${QWEN_ENV_BIN}:$PATH"
 mkdir -p "${DATASET_MAP_DIR}"
 # train/ 放 sitecustomize.py，所有 python 子进程（含 dataset map）启动时：

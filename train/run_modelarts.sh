@@ -19,7 +19,7 @@ TRAIN_DIR="${PROJECT_ROOT}/train"
 MODEL_ID="${PROJECT_ROOT}/model/Qwen3.5-9B"
 SWIFT_JSONL="${PROJECT_ROOT}/data/roi_cls_vqa.jsonl"
 OUTPUT_DIR=/home/ma-user/modelarts/outputs
-CONDA_ENV=/home/ma-user/work/yetiandi/envs/qwen35
+CONDA_ENV=/home/ma-user/envs/qwen35
 
 # ==================== conda ====================
 export PATH=/home/ma-user/anaconda3/bin:$PATH
