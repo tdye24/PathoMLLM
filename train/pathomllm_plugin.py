@@ -1,9 +1,10 @@
-"""Load OBS images via moxing for ms-swift.
+"""ms-swift external plugin for PathoMLLM SFT on ModelArts.
 
-ms-swift reads images with ``swift.template.vision_utils.load_file``
-(plain ``open(path, 'rb')``), not ``qwen_vl_utils.fetch_image``. Patch
-``load_file`` / ``load_image`` so ``s3://`` / ``obs://`` are read via moxing
-into a BytesIO (same pattern as v1 h5 loading).
+Loaded via ``--external_plugins pathomllm_plugin.py``. Top-level code runs at
+import time in each training worker, before dataset encode / lazy tokenize.
+
+- Relax PIL limits for large pathology tiles / PNG metadata.
+- Patch ``swift.template.vision_utils.load_file`` for ``s3://`` / ``obs://``.
 """
 
 from __future__ import annotations
@@ -12,7 +13,7 @@ import io
 import os
 import sys
 
-# moxing ships old _pb2 stubs; protobuf>=4 raises without this.
+# Before any moxing/protobuf import (moxing old stubs vs protobuf>=4).
 os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
 
 _patched = False
@@ -23,7 +24,6 @@ def _get_mox():
     global _mox
     if _mox is not None:
         return _mox
-    # Must set before first protobuf/moxing import in this process.
     os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
     import moxing as mox  # type: ignore[import-untyped]
 
@@ -50,7 +50,6 @@ def apply_remote_image_patch() -> None:
     if _patched:
         return
 
-    # Fail early if moxing cannot import (protobuf clash, missing install, ...)
     _get_mox()
 
     import swift.template.vision_utils as vu
@@ -75,21 +74,24 @@ def apply_remote_image_patch() -> None:
     vu.load_file = load_file
     vu.load_image = load_image
 
-    # base.py does ``from ...vision_utils import load_image`` — rebind that name too
     try:
         import swift.template.base as base
 
         if getattr(base, "load_image", None) is not None:
             base.load_image = load_image
     except Exception as exc:  # noqa: BLE001
-        print(f"[remote_image_io] warn: could not rebind base.load_image: {exc}", file=sys.stderr, flush=True)
+        print(f"[pathomllm_plugin] warn: could not rebind base.load_image: {exc}", file=sys.stderr, flush=True)
 
     _patched = True
-    print("[remote_image_io] patched swift load_file/load_image for s3://", flush=True)
+    print("[pathomllm_plugin] patched swift load_file/load_image for s3://", flush=True)
 
 
-def ensure_patched() -> None:
-    """Apply patch or raise (for preflight checks in sft.sh)."""
-    apply_remote_image_patch()
-    if not _patched:
-        raise RuntimeError("remote_image_io patch did not apply")
+try:
+    from PIL import Image, PngImagePlugin
+
+    PngImagePlugin.MAX_TEXT_CHUNK = 100 * (1024**2)  # 100 MiB
+    Image.MAX_IMAGE_PIXELS = None
+except Exception as exc:  # noqa: BLE001
+    print(f"[pathomllm_plugin] PIL relax failed: {exc}", file=sys.stderr, flush=True)
+
+apply_remote_image_patch()
