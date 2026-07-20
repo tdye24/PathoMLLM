@@ -1,8 +1,9 @@
 """ms-swift external plugin for PathoMLLM SFT on ModelArts.
 
 Loaded via ``--external_plugins pathomllm_plugin.py``. Top-level code runs at
-import time in each training worker, before dataset encode / lazy tokenize.
+import time in each training worker (before Trainer / callbacks import).
 
+- Shim ``FSDPModule`` for torch 2.4/2.5 (ms-swift 4.3.x imports it eagerly).
 - Relax PIL limits for large pathology tiles / PNG metadata.
 - Patch ``swift.template.vision_utils.load_file`` for ``s3://`` / ``obs://``.
 """
@@ -18,6 +19,39 @@ os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
 
 _patched = False
 _mox = None
+_fsdp_shimmed = False
+
+
+def ensure_fsdp_module_export() -> None:
+    """Make ``from torch.distributed.fsdp import FSDPModule`` work on torch<2.6.
+
+    ms-swift 4.3.x eagerly imports activation_cpu_offload → FSDPModule from the
+    public fsdp package. On torch 2.4/2.5 it only lives under ``_composable.fsdp``.
+    Injecting the symbol once here survives ms-swift reinstalls (lives in this plugin).
+    """
+    global _fsdp_shimmed
+    if _fsdp_shimmed:
+        return
+    try:
+        from torch.distributed.fsdp import FSDPModule  # noqa: F401
+
+        _fsdp_shimmed = True
+        return
+    except ImportError:
+        pass
+    try:
+        from torch.distributed._composable.fsdp import FSDPModule
+        import torch.distributed.fsdp as fsdp
+
+        fsdp.FSDPModule = FSDPModule
+        _fsdp_shimmed = True
+        print(
+            "[pathomllm_plugin] shimmed FSDPModule into torch.distributed.fsdp (torch<2.6)",
+            flush=True,
+        )
+    except ImportError as exc:
+        print(f"[pathomllm_plugin] FSDPModule shim FAILED: {exc}", file=sys.stderr, flush=True)
+        raise
 
 
 def _get_mox():
@@ -85,6 +119,9 @@ def apply_remote_image_patch() -> None:
     _patched = True
     print("[pathomllm_plugin] patched swift load_file/load_image for s3://", flush=True)
 
+
+# Import-time side effects (each torchrun worker).
+ensure_fsdp_module_export()
 
 try:
     from PIL import Image, PngImagePlugin

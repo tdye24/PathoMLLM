@@ -116,6 +116,7 @@ PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF}" \
 swift sft \
     --model "${MODEL_ID}" \
     --tuner_type lora \
+    --check_model false \
     --external_plugins "${PLUGIN}" \
     --dataset "${SWIFT_JSONL}" \
     --output_dir "${OUTPUT_DIR}" \
