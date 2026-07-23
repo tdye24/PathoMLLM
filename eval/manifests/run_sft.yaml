@@ -1,0 +1,9 @@
+# Edit paths for your ModelArts / local environment before running.
+run_name: pathomllm_sft
+inference_script: eval/batch_inference.py
+model_id: /home/ma-user/modelarts/user-job-dir/PathoMLLM/model/Qwen3.5-9B
+checkpoint_arg: --adapter_dir
+checkpoints:
+  - /home/ma-user/modelarts/user-job-dir/PathoMLLM/outputs/sft/v0-xxx/checkpoint-500
+extra_args:
+  attn_implementation: sdpa

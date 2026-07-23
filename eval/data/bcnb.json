@@ -1,0 +1,26 @@
+[
+  {
+    "id": "bcnb_00001",
+    "task": "grade",
+    "messages": [
+      {
+        "role": "user",
+        "content": "<image>\nBased on this ROI, what is the histologic grade of the invasive carcinoma?\n(A) Grade 1 (well differentiated)\n(B) Grade 2 (moderately differentiated)\n(C) Grade 3 (poorly differentiated)\n(D) Cannot determine"
+      }
+    ],
+    "ground_truth": "B",
+    "images": ["${PATHOMLLM_DATA_ROOT}/tiles/bcnb/bcnb_00001.jpg"]
+  },
+  {
+    "id": "bcnb_00002",
+    "task": "lvi",
+    "messages": [
+      {
+        "role": "user",
+        "content": "<image>\nDoes this ROI show evidence of lymphovascular invasion?\n(A) Yes\n(B) No\n(C) Indeterminate"
+      }
+    ],
+    "ground_truth": "A",
+    "images": ["${PATHOMLLM_DATA_ROOT}/tiles/bcnb/bcnb_00002.jpg"]
+  }
+]

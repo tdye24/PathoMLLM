@@ -1,0 +1,11 @@
+suite_name: pathomllm_benchmarks
+seed: 42
+output_dir: results
+
+datasets:
+  - name: bcnb
+    path: data/bcnb.json
+    scorer: bcnb
+  # - name: roi_cls_vqa
+  #   path: data/roi_cls_vqa_test.json
+  #   scorer: roi_cls

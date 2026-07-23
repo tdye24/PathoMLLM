@@ -1,0 +1,38 @@
+[
+  {
+    "id": "t1",
+    "task": "Tumor",
+    "messages": [
+      {
+        "role": "user",
+        "content": "<image>\nPick one: (A) Normal (B) Tumor"
+      }
+    ],
+    "ground_truth": "B",
+    "images": ["s3://example-bucket/tiles/t1.jpg"]
+  },
+  {
+    "id": "t2",
+    "task": "Tumor",
+    "messages": [
+      {
+        "role": "user",
+        "content": "<image>\nPick one: (A) Normal (B) Tumor"
+      }
+    ],
+    "ground_truth": "A",
+    "images": ["s3://example-bucket/tiles/t2.jpg"]
+  },
+  {
+    "id": "t3",
+    "task": "Grade",
+    "messages": [
+      {
+        "role": "user",
+        "content": "<image>\nPick one: (A) Gland (B) Vessel"
+      }
+    ],
+    "ground_truth": "A",
+    "images": ["s3://example-bucket/tiles/t3.jpg"]
+  }
+]

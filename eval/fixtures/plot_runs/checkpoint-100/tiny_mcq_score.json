@@ -1,0 +1,6 @@
+{
+  "dataset": "tiny_mcq",
+  "scorer": "bcnb",
+  "scores": {"acc": 0.5, "bacc": 0.45, "f1": 0.4},
+  "counts": {"n_correct": 1, "n_scored": 2}
+}

@@ -1,0 +1,5 @@
+[
+  {"id": "t1", "status": "success", "prediction": "B", "raw_prediction": "B"},
+  {"id": "t2", "status": "success", "prediction": "B", "raw_prediction": "The answer is B"},
+  {"id": "t3", "status": "success", "prediction": "A", "raw_prediction": "<answer>A</answer>"}
+]
