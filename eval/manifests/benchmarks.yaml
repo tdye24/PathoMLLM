@@ -6,6 +6,9 @@ datasets:
   - name: bcnb
     path: data/bcnb.json
     scorer: bcnb
+  - name: chaoyang
+    path: data/chaoyang.json
+    scorer: chaoyang
   # - name: roi_cls_vqa
   #   path: data/roi_cls_vqa_test.json
   #   scorer: roi_cls

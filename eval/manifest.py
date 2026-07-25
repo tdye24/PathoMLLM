@@ -13,7 +13,7 @@ import yaml
 
 EVAL_DIR = Path(__file__).resolve().parent
 ROOT = EVAL_DIR.parent
-SCORERS = {"mcq", "bcnb", "roi_cls", "pathmmu"}
+SCORERS = {"mcq", "bcnb", "chaoyang", "roi_cls", "pathmmu"}
 
 
 def _resolve(path: str, base: Path) -> str:

@@ -40,6 +40,7 @@ manifest.yaml          run_config.yaml
 |--------|------|----------------|
 | `mcq` | 通用 MCQ | — |
 | `bcnb` | bcnb | `by_task` |
+| `chaoyang` | Chaoyang 4-class colon patch | — |
 | `roi_cls` | ROI 分类 VQA | `by_task` |
 | `pathmmu` | pathmmu | `by_subset` |
 

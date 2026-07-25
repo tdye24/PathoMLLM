@@ -3,6 +3,7 @@
 | File | scorer | 必填字段 |
 |------|--------|----------|
 | `bcnb.json` | `bcnb` | `id`, `messages`, `ground_truth`, `task`, `images` |
+| `chaoyang.json` | `chaoyang` | `id`, `messages`, `ground_truth`, `images` |
 | `roi_cls_vqa_test.json` | `roi_cls` | `id`, `messages`, `ground_truth`, `task`, `images` |
 | generic MCQ | `mcq` | `id`, `messages`, `ground_truth`, `images` |
 | PathMMU-style | `pathmmu` | `id`, `messages`, `ground_truth`, `subset`, `images` |

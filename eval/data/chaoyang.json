@@ -1,0 +1,24 @@
+[
+  {
+    "id": "chaoyang_00001",
+    "messages": [
+      {
+        "role": "user",
+        "content": "<image>\nClassify this colon histopathology patch into one of these classes:\n(A) Normal\n(B) Serrated\n(C) Adenocarcinoma\n(D) Adenoma\n\nOutput ONLY ONE letter corresponding to the correct choice.\nNo explanation. No extra words. No punctuation.\nJust output the letter in this format:\nThe correct option is: **"
+      }
+    ],
+    "ground_truth": "A",
+    "images": ["${PATHOMLLM_DATA_ROOT}/tiles/chaoyang/chaoyang_00001.jpg"]
+  },
+  {
+    "id": "chaoyang_00002",
+    "messages": [
+      {
+        "role": "user",
+        "content": "<image>\nClassify this colon histopathology patch into one of these classes:\n(A) Normal\n(B) Serrated\n(C) Adenocarcinoma\n(D) Adenoma\n\nOutput ONLY ONE letter corresponding to the correct choice.\nNo explanation. No extra words. No punctuation.\nJust output the letter in this format:\nThe correct option is: **"
+      }
+    ],
+    "ground_truth": "C",
+    "images": ["${PATHOMLLM_DATA_ROOT}/tiles/chaoyang/chaoyang_00002.jpg"]
+  }
+]

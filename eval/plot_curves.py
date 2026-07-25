@@ -13,6 +13,7 @@ from typing import Iterable
 
 DEFAULT_DATASET_METRIC: dict[str, str] = {
     "bcnb": "acc",
+    "chaoyang": "acc",
     "roi_cls": "acc",
     "roi_cls_vqa": "acc",
     "pathmmu": "acc",

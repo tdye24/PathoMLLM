@@ -2,13 +2,14 @@
 
 from typing import Any, Callable
 
-from . import bcnb, mcq, pathmmu, roi_cls
+from . import bcnb, chaoyang, mcq, pathmmu, roi_cls
 
 ScorerFn = Callable[[list[dict[str, Any]], list[dict[str, Any]]], dict[str, Any]]
 
 SCORERS: dict[str, ScorerFn] = {
     "mcq": mcq.score,
     "bcnb": bcnb.score,
+    "chaoyang": chaoyang.score,
     "roi_cls": roi_cls.score,
     "pathmmu": pathmmu.score,
 }

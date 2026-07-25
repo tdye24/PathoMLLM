@@ -11,6 +11,7 @@ from eval.metrics.postprocess import postprocess_prediction, postprocess_referen
 from eval.metrics.registry import compute_metrics
 from eval.score import join_records, score_dataset
 from eval.scorers import bcnb as bcnb_scorer
+from eval.scorers import chaoyang as chaoyang_scorer
 
 try:
     from sklearn.metrics import f1_score, recall_score
@@ -69,6 +70,24 @@ class EvalTests(unittest.TestCase):
         self.assertEqual(result["counts"]["n_correct"], 2)
         self.assertAlmostEqual(result["by_task"]["T1"]["scores"]["acc"], 1.0)
         self.assertAlmostEqual(result["by_task"]["T2"]["scores"]["acc"], 0.0)
+
+    def test_chaoyang_scorer_metrics(self):
+        gt = [
+            {"id": "1", "ground_truth": "A"},
+            {"id": "2", "ground_truth": "B"},
+            {"id": "3", "ground_truth": "C"},
+            {"id": "4", "ground_truth": "D"},
+        ]
+        pred = [
+            {"id": "1", "status": "success", "prediction": "A"},
+            {"id": "2", "status": "success", "prediction": "B"},
+            {"id": "3", "status": "success", "prediction": "A"},
+            {"id": "4", "status": "success", "prediction": "D"},
+        ]
+        result = chaoyang_scorer.score(gt, pred)
+        self.assertEqual(set(result["scores"]), {"acc", "bacc", "f1"})
+        self.assertAlmostEqual(result["scores"]["acc"], 0.75)
+        self.assertEqual(result["counts"]["n_correct"], 3)
 
     def test_manifest_load(self):
         m = load_manifest(EVAL_DIR / "fixtures/tiny_manifest.yaml")
