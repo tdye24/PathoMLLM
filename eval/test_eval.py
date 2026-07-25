@@ -31,6 +31,14 @@ class EvalTests(unittest.TestCase):
         self.assertEqual(postprocess_prediction("<answer>B</answer>", "mcq"), "B")
         self.assertEqual(postprocess_prediction("...\n\n(C) is correct", "mcq"), "C")
         self.assertEqual(postprocess_reference("c", "mcq"), "C")
+        # Letter + class name / CJK prefixes (Unicode \\b used to fail these)
+        self.assertEqual(postprocess_prediction("A. Normal", "mcq"), "A")
+        self.assertEqual(postprocess_prediction("C. Adenocarcinoma", "mcq"), "C")
+        self.assertEqual(postprocess_prediction("选项A. Serrated", "mcq"), "A")
+        self.assertEqual(postprocess_prediction("答案是B. Adenoma", "mcq"), "B")
+        self.assertEqual(postprocess_prediction("a. normal", "mcq"), "A")
+        self.assertEqual(postprocess_prediction("选C", "mcq"), "C")
+        self.assertEqual(postprocess_prediction("The correct option is: **D**", "mcq"), "D")
 
     def test_sampling(self):
         m = {"seed": 42, "sample_ratio": 0.5}

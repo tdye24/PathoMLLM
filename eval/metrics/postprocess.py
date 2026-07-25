@@ -5,9 +5,17 @@ from __future__ import annotations
 import re
 
 _ANSWER = re.compile(r"<answer>\s*(.*?)\s*</answer>", re.I | re.S)
-_LETTER = re.compile(r"\b([A-Z])\b")
-_PAREN = re.compile(r"\(([A-Z])\)", re.I)
 _THINK = "</think>"
+
+# Prefer explicit MCQ markers; avoid Unicode \\b (CJK chars are \\w and break "选项A.").
+_MCQ_PATTERNS = (
+    # (A) / （A）
+    re.compile(r"[\(（]\s*([A-Za-z])\s*[\)）]"),
+    # A. / A． / A、 / A: / A： / A) + optional class text
+    re.compile(r"(?<![A-Za-z])([A-Za-z])\s*[.．、:：)）]"),
+    # standalone letter (ASCII letter boundary, not Unicode \\b)
+    re.compile(r"(?<![A-Za-z0-9])([A-Za-z])(?![A-Za-z0-9])"),
+)
 
 
 def postprocess_prediction(text: str, mode: str) -> str | None:
@@ -20,10 +28,9 @@ def postprocess_prediction(text: str, mode: str) -> str | None:
     if mode == "mcq":
         if len(body) == 1 and body.isalpha():
             return body.upper()
-        if m := _LETTER.search(body):
-            return m.group(1).upper()
-        if m := _PAREN.search(body):
-            return m.group(1).upper()
+        for pat in _MCQ_PATTERNS:
+            if m := pat.search(body):
+                return m.group(1).upper()
         return None
 
     if mode in {"free_text", "caption"}:
