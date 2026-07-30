@@ -25,7 +25,10 @@ def _load_module(script: Path):
 
 
 def _inference_argv(run_cfg: dict, checkpoint: str, output_json: str, enable_thinking: bool) -> list[str]:
-    argv = ["--model_id", str(run_cfg["model_id"]), run_cfg["checkpoint_arg"], checkpoint, "--output_json", output_json]
+    argv = ["--model_id", str(run_cfg["model_id"]), "--output_json", output_json]
+    checkpoint_arg = run_cfg.get("checkpoint_arg")
+    if checkpoint_arg:
+        argv.extend([str(checkpoint_arg), checkpoint])
     if enable_thinking:
         argv.append("--enable_thinking")
     for key, val in (run_cfg.get("extra_args") or {}).items():

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""PathoMLLM batch inference — Qwen3.5 native vision + LoRA adapter."""
+"""PathoMLLM batch inference — Qwen3.5 native vision (+ optional LoRA adapter)."""
 
 from __future__ import annotations
 
@@ -108,7 +108,7 @@ def validate_image_tags(messages: List[Dict[str, Any]], images: List[str], sampl
         )
 
 
-def build_engine(model_id: str, adapter_dir: str, attn_impl: str):
+def build_engine(model_id: str, adapter_dir: str | None, attn_impl: str):
     os.environ.setdefault("IMAGE_MAX_TOKEN_NUM", "1024")
     os.environ.setdefault("VIDEO_MAX_TOKEN_NUM", "128")
     os.environ.setdefault("FPS_MAX_FRAMES", "12")
@@ -116,9 +116,10 @@ def build_engine(model_id: str, adapter_dir: str, attn_impl: str):
 
     from swift.infer_engine import RequestConfig, TransformersEngine
 
+    adapters = [adapter_dir] if adapter_dir else []
     engine = TransformersEngine(
         model_id,
-        adapters=[adapter_dir],
+        adapters=adapters,
         attn_impl=attn_impl,
         torch_dtype="bfloat16",
     )
@@ -211,14 +212,19 @@ def run_inference(args: argparse.Namespace, samples=None) -> None:
 
 def parse_args(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="PathoMLLM batch inference (Qwen3.5 native vision + LoRA)."
+        description="PathoMLLM batch inference (Qwen3.5 native vision; LoRA optional)."
     )
-    parser.add_argument("--model_id", type=str, required=True, help="Base Qwen3.5 model path")
+    parser.add_argument(
+        "--model_id",
+        type=str,
+        required=True,
+        help="Qwen3.5 model path (base model, or fully merged checkpoint)",
+    )
     parser.add_argument(
         "--adapter_dir",
         type=str,
-        required=True,
-        help="ms-swift LoRA checkpoint dir (checkpoint-* or final adapter dir)",
+        default=None,
+        help="Optional ms-swift LoRA checkpoint dir; omit when model_id is already merged",
     )
     parser.add_argument("--input_json", type=str, default="eval/data/bcnb.json")
     parser.add_argument("--output_json", type=str, default="eval/results/pred.json")

@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Collect *_score.json under a run dir into summary.csv."""
 
+from __future__ import annotations
+
 import argparse
 import csv
 import json

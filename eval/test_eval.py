@@ -6,9 +6,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eval.manifest import EVAL_DIR, load_manifest, sample_entries
+from eval.manifest import EVAL_DIR, load_manifest, load_run_config, sample_entries
 from eval.metrics.postprocess import postprocess_prediction, postprocess_reference
 from eval.metrics.registry import compute_metrics
+from eval.run_eval import _inference_argv
 from eval.score import join_records, score_dataset
 from eval.scorers import bcnb as bcnb_scorer
 from eval.scorers import chaoyang as chaoyang_scorer
@@ -101,6 +102,53 @@ class EvalTests(unittest.TestCase):
         m = load_manifest(EVAL_DIR / "fixtures/tiny_manifest.yaml")
         self.assertEqual(m["datasets"][0]["name"], "tiny_mcq")
         self.assertTrue(Path(m["datasets"][0]["path"]).is_file())
+
+    def test_inference_argv_with_adapter(self):
+        run_cfg = {
+            "model_id": "/models/base",
+            "checkpoint_arg": "--adapter_dir",
+            "extra_args": {"attn_implementation": "sdpa"},
+        }
+        argv = _inference_argv(run_cfg, "/ckpts/checkpoint-100", "out.json", enable_thinking=False)
+        self.assertEqual(
+            argv,
+            [
+                "--model_id",
+                "/models/base",
+                "--output_json",
+                "out.json",
+                "--adapter_dir",
+                "/ckpts/checkpoint-100",
+                "--attn_implementation",
+                "sdpa",
+            ],
+        )
+
+    def test_inference_argv_merged_no_adapter(self):
+        run_cfg = {
+            "model_id": "/models/Qwen3.5-9B-v1",
+            "checkpoint_arg": None,
+            "extra_args": {"attn_implementation": "sdpa"},
+        }
+        argv = _inference_argv(run_cfg, "Qwen3.5-9B-v1", "out.json", enable_thinking=False)
+        self.assertNotIn("--adapter_dir", argv)
+        self.assertEqual(
+            argv,
+            [
+                "--model_id",
+                "/models/Qwen3.5-9B-v1",
+                "--output_json",
+                "out.json",
+                "--attn_implementation",
+                "sdpa",
+            ],
+        )
+
+    def test_load_run_config_merged(self):
+        cfg = load_run_config(EVAL_DIR / "manifests/run_merged.yaml")
+        self.assertIsNone(cfg["checkpoint_arg"])
+        self.assertTrue(cfg["model_id"])
+        self.assertTrue(cfg["checkpoints"])
 
     def test_join_records_missing_pred(self):
         gt = [{"id": "x", "ground_truth": "A"}]

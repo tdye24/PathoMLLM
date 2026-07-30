@@ -46,6 +46,8 @@ manifest.yaml          run_config.yaml
 
 ## 单独推理
 
+**LoRA checkpoint（base + adapter）：**
+
 ```bash
 python eval/batch_inference.py \
   --model_id model/Qwen3.5-9B \
@@ -53,6 +55,24 @@ python eval/batch_inference.py \
   --input_json eval/data/bcnb.json \
   --output_json eval/results/bcnb_pred.json \
   --attn_implementation sdpa
+```
+
+**已合并整模（只需 `--model_id`）：**
+
+```bash
+python eval/batch_inference.py \
+  --model_id model/Qwen3.5-9B-v1 \
+  --input_json eval/data/bcnb.json \
+  --output_json eval/results/bcnb_pred.json \
+  --attn_implementation sdpa
+```
+
+或用 run config：
+
+```bash
+python -m eval.run_eval \
+  --manifest eval/manifests/benchmarks.yaml \
+  --run_config eval/manifests/run_merged.yaml
 ```
 
 `batch_inference.py` 会自动加载 `train/pathomllm_plugin.py`（s3:// 读图 + torch 2.4 FSDP shim）。

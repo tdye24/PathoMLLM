@@ -1,0 +1,12 @@
+# Eval a fully merged model (no LoRA adapter).
+# Edit model_id for your environment before running.
+run_name: pathomllm_merged_v1
+inference_script: eval/batch_inference.py
+model_id: /home/ma-user/work/yetiandi/PathoMLLM/model/Qwen3.5-9B-v1
+# Omit LoRA: null / empty means only --model_id is passed to inference.
+checkpoint_arg: null
+checkpoints:
+  # Used as the results subdirectory name under output_dir/<run_name>/
+  - Qwen3.5-9B-v1
+extra_args:
+  attn_implementation: sdpa

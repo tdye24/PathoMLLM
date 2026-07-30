@@ -66,11 +66,13 @@ def load_manifest(path: str | Path, env: dict[str, str] | None = None) -> dict[s
 
 def load_run_config(path: str | Path) -> dict[str, Any]:
     cfg = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
-    for key in ("run_name", "inference_script", "model_id", "checkpoint_arg", "checkpoints"):
+    for key in ("run_name", "inference_script", "model_id", "checkpoints"):
         if not cfg.get(key):
             raise ValueError(f"run_config missing '{key}'")
     if not cfg["checkpoints"]:
         raise ValueError("run_config checkpoints must be non-empty")
+    # checkpoint_arg may be null/omitted for fully merged models (no LoRA).
+    cfg.setdefault("checkpoint_arg", None)
     cfg.setdefault("extra_args", {})
     cfg["inference_script"] = _resolve(str(cfg["inference_script"]), ROOT)
     return cfg

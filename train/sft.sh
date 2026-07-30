@@ -71,6 +71,8 @@ export NCCL_SOCKET_IFNAME="${NCCL_SOCKET_IFNAME:-eth0}"
 export IMAGE_MAX_TOKEN_NUM="${IMAGE_MAX_TOKEN_NUM:-1024}"
 export VIDEO_MAX_TOKEN_NUM=128
 export FPS_MAX_FRAMES=12
+# Qwen VL grounding: <bbox> -> [x1, y1, x2, y2] (default legacy uses <|box_start|>...)
+export QWENVL_BBOX_FORMAT="${QWENVL_BBOX_FORMAT:-new}"
 
 # =============================================================================
 # Preflight
@@ -99,6 +101,7 @@ echo "Batch       : per_device=${PER_DEVICE_BATCH} grad_accum=${GRAD_ACCUM} glob
 echo "LoRA        : rank=${LORA_RANK} alpha=${LORA_ALPHA} dropout=${LORA_DROPOUT}"
 echo "DeepSpeed   : ${DEEPSPEED}"
 echo "Vision      : IMAGE_MAX_TOKEN_NUM=${IMAGE_MAX_TOKEN_NUM}"
+echo "BBox format : QWENVL_BBOX_FORMAT=${QWENVL_BBOX_FORMAT}"
 echo ""
 
 # =============================================================================
@@ -112,6 +115,7 @@ NPROC_PER_NODE="${NUM_GPUS}" \
 IMAGE_MAX_TOKEN_NUM="${IMAGE_MAX_TOKEN_NUM}" \
 VIDEO_MAX_TOKEN_NUM="${VIDEO_MAX_TOKEN_NUM}" \
 FPS_MAX_FRAMES="${FPS_MAX_FRAMES}" \
+QWENVL_BBOX_FORMAT="${QWENVL_BBOX_FORMAT}" \
 PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF}" \
 swift sft \
     --model "${MODEL_ID}" \
