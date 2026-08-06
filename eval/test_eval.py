@@ -13,6 +13,7 @@ from eval.run_eval import _inference_argv
 from eval.score import join_records, score_dataset
 from eval.scorers import bcnb as bcnb_scorer
 from eval.scorers import chaoyang as chaoyang_scorer
+from eval.scorers import bbox_seg as bbox_seg_scorer
 
 try:
     from sklearn.metrics import f1_score, recall_score
@@ -155,6 +156,23 @@ class EvalTests(unittest.TestCase):
         pred = []
         records = join_records(gt, pred)
         self.assertEqual(records[0]["status"], "missing_prediction")
+
+    def test_bbox_seg_scorer(self):
+        gt = [
+            {"id": "exact", "ground_truth": [10, 20, 110, 220]},
+            {"id": "partial", "ground_truth": {"bbox": [0, 0, 100, 100]}},
+            {"id": "missing", "ground_truth": "<bbox>[0, 0, 10, 10]</bbox>"},
+        ]
+        pred = [
+            {"id": "exact", "prediction": "<bbox>[10,20,110,220]</bbox>"},
+            {"id": "partial", "prediction": "The lesion is at [50, 0, 150, 100]."},
+        ]
+        result = bbox_seg_scorer.score(gt, pred)
+        self.assertAlmostEqual(result["details"][0]["scores"]["iou"], 1.0)
+        self.assertAlmostEqual(result["details"][1]["scores"]["iou"], 1 / 3)
+        self.assertAlmostEqual(result["details"][1]["scores"]["dice"], 0.5)
+        self.assertEqual(result["details"][2]["scores"]["iou"], 0.0)
+        self.assertEqual(result["counts"]["n_missing_or_invalid"], 1)
 
     def test_plot_load_series(self):
         from eval.plot_curves import load_series_from_run_dir

@@ -50,7 +50,7 @@ def main() -> None:
     p.add_argument("--output_json", default=None)
     args = p.parse_args()
     result = score_dataset(args.manifest, args.dataset, args.pred_json, output_json=args.output_json)
-    print(json.dumps({k: result["scores"][k] for k in ("acc", "bacc", "f1") if k in result["scores"]} | {"counts": result["counts"]}, indent=2))
+    print(json.dumps({"scores": result["scores"], "counts": result["counts"]}, indent=2))
 
 
 if __name__ == "__main__":

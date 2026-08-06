@@ -2,7 +2,7 @@
 
 from typing import Any, Callable
 
-from . import bcnb, chaoyang, mcq, pathmmu, roi_cls
+from . import bbox_seg, bcnb, chaoyang, mcq, pathmmu, roi_cls
 
 ScorerFn = Callable[[list[dict[str, Any]], list[dict[str, Any]]], dict[str, Any]]
 
@@ -12,6 +12,7 @@ SCORERS: dict[str, ScorerFn] = {
     "chaoyang": chaoyang.score,
     "roi_cls": roi_cls.score,
     "pathmmu": pathmmu.score,
+    "bbox_seg": bbox_seg.score,
 }
 
 

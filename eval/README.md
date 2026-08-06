@@ -43,6 +43,7 @@ manifest.yaml          run_config.yaml
 | `chaoyang` | Chaoyang 4-class colon patch | — |
 | `roi_cls` | ROI 分类 VQA | `by_task` |
 | `pathmmu` | pathmmu | `by_subset` |
+| `bbox_seg` | 检测/box 分割（SmartPath-R1 bbox 输出） | 逐样本 IoU/Dice/Precision/Recall |
 
 ## 单独推理
 
@@ -76,6 +77,9 @@ python -m eval.run_eval \
 ```
 
 `batch_inference.py` 会自动加载 `train/pathomllm_plugin.py`（s3:// 读图 + torch 2.4 FSDP shim）。
+`images` 可使用本地路径或 `s3://`/`obs://` 路径；远端图片通过 ModelArts
+`moxing.file.File` 在线读取，两种图片路径可在同一数据集中混用。Manifest、
+标注 JSON、预测 JSON 和输出 JSON 均使用本地路径。
 
 ## 单独打分
 
