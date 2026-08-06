@@ -1,4 +1,4 @@
-"""Bounding-box evaluation for detection/box-supervised segmentation datasets."""
+"""Bounding-box detection evaluation with AP at IoU 0.5."""
 
 from __future__ import annotations
 
@@ -141,14 +141,58 @@ def box_metrics(reference: list[float], prediction: list[float]) -> dict[str, fl
     }
 
 
+def calculate_ap50(gt_boxes: list[list[float]], pred_boxes: list[list[float]]) -> float:
+    """Reproduce SmartPath-R1's per-image, generation-order AP50 calculation."""
+    if not gt_boxes or not pred_boxes:
+        return 0.0
+
+    true_positives = []
+    false_positives = []
+    gt_matched = [False] * len(gt_boxes)
+    for pred_box in pred_boxes:
+        best_iou = 0.0
+        best_gt_idx = -1
+        for gt_idx, gt_box in enumerate(gt_boxes):
+            if gt_matched[gt_idx]:
+                continue
+            iou = box_metrics(gt_box, pred_box)["iou"]
+            if iou > best_iou:
+                best_iou = iou
+                best_gt_idx = gt_idx
+        is_true_positive = best_iou >= 0.5
+        true_positives.append(int(is_true_positive))
+        false_positives.append(int(not is_true_positive))
+        if is_true_positive:
+            gt_matched[best_gt_idx] = True
+
+    cumulative_tp = 0
+    cumulative_fp = 0
+    recalls = [0.0]
+    precisions = [0.0]
+    for tp, fp in zip(true_positives, false_positives):
+        cumulative_tp += tp
+        cumulative_fp += fp
+        recalls.append(cumulative_tp / len(gt_boxes))
+        precisions.append(cumulative_tp / (cumulative_tp + cumulative_fp + 1e-8))
+    recalls.append(1.0)
+    precisions.append(0.0)
+
+    for idx in range(len(precisions) - 2, -1, -1):
+        precisions[idx] = max(precisions[idx], precisions[idx + 1])
+    return sum(
+        (recalls[idx + 1] - recalls[idx]) * precisions[idx + 1]
+        for idx in range(len(recalls) - 1)
+    )
+
+
 def score(gt: list[dict[str, Any]], pred: list[dict[str, Any]]) -> dict[str, Any]:
-    """Score boxes; for multiple boxes, greedily match pairs by descending IoU."""
+    """Score a single-class detection dataset using AP50."""
     pred_by_id = {str(item["id"]): item for item in pred if "id" in item}
-    metric_names = ("iou", "dice", "precision", "recall")
-    totals = dict.fromkeys(metric_names, 0.0)
     details = []
+    ap50_scores = []
     parsed_predictions = 0
     empty_ground_truth = 0
+    missing_predictions = 0
 
     for sample in gt:
         sample_id = str(sample["id"])
@@ -158,6 +202,9 @@ def score(gt: list[dict[str, Any]], pred: list[dict[str, Any]]) -> dict[str, Any
             raise ValueError(f"Sample {sample_id} has no valid ground-truth box")
         empty_ground_truth += not references
         prediction_record = pred_by_id.get(sample_id)
+        if prediction_record is None:
+            missing_predictions += 1
+            continue
         prediction_value = prediction_record.get("prediction", "") if prediction_record else ""
         norm_predictions = parse_boxes(prediction_value)
         prediction_is_explicit_empty = _is_explicit_empty(prediction_value)
@@ -168,53 +215,28 @@ def score(gt: list[dict[str, Any]], pred: list[dict[str, Any]]) -> dict[str, Any
             predictions = [norm1000_to_pixels(box, width, height) for box in norm_predictions]
         else:
             predictions = []
-
-        pairs = sorted(
-            (
-                (box_metrics(ref, candidate)["iou"], ref_idx, pred_idx)
-                for ref_idx, ref in enumerate(references)
-                for pred_idx, candidate in enumerate(predictions)
-            ),
-            reverse=True,
-        )
-        used_refs: set[int] = set()
-        used_preds: set[int] = set()
-        sums = dict.fromkeys(metric_names, 0.0)
-        for _, ref_idx, pred_idx in pairs:
-            if ref_idx in used_refs or pred_idx in used_preds:
-                continue
-            used_refs.add(ref_idx)
-            used_preds.add(pred_idx)
-            metrics = box_metrics(references[ref_idx], predictions[pred_idx])
-            for name in metric_names:
-                sums[name] += metrics[name]
-
-        # Empty GT + empty prediction is a correct empty-mask prediction. Any unmatched
-        # GT or prediction is a zero-overlap object (macro object average).
-        if not references and not predictions and prediction_is_explicit_empty:
-            sample_scores = dict.fromkeys(metric_names, 1.0)
-        else:
-            denominator = max(len(references), len(predictions), 1)
-            sample_scores = {name: sums[name] / denominator for name in metric_names}
-        for name in metric_names:
-            totals[name] += sample_scores[name]
+        sample_ap50 = calculate_ap50(references, predictions)
+        ap50_scores.append(sample_ap50)
         details.append(
             {
                 "id": sample_id,
                 "ground_truth_boxes": references,
                 "prediction_boxes_norm1000": norm_predictions,
                 "prediction_boxes": predictions,
-                "scores": sample_scores,
+                "ap50": sample_ap50,
             }
         )
 
     n_samples = len(gt)
+    n_scored = len(ap50_scores)
     return {
-        "scores": {name: totals[name] / n_samples if n_samples else 0.0 for name in metric_names},
+        "scores": {"ap50": sum(ap50_scores) / n_scored if n_scored else 0.0},
         "counts": {
             "n_samples": n_samples,
+            "n_scored": n_scored,
+            "n_missing_predictions": missing_predictions,
             "n_parsed_predictions": parsed_predictions,
-            "n_missing_or_invalid": n_samples - parsed_predictions,
+            "n_missing_or_invalid": n_samples - missing_predictions - parsed_predictions,
             "n_empty_ground_truth": empty_ground_truth,
         },
         "details": details,

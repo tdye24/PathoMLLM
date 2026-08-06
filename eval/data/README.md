@@ -42,14 +42,15 @@
 
 ## Bounding box 检测/分割
 
-`bbox_seg` 将 bbox 当作矩形二值 mask，报告 macro **IoU、Dice、Precision、Recall**。
+`bbox_seg` 当前用于 bounding-box 检测，报告 **AP50**。
 SmartPath-R1 风格的预测应为 `<bbox>[x1,y1,x2,y2]</bbox>`；也兼容裸数组和
 `{"bbox": [...]}`。`ground_truth` 可使用相同格式。多目标时使用 bbox 数组，按 IoU
-贪心一对一匹配；漏检、误检和无法解析的输出均按零分计入。GT 和预测必须采用同一
+在 IoU 阈值 0.5 下进行一对一匹配。GT 和预测必须采用同一
 坐标系。Qwen3.5 的预测按 0--1000 相对坐标解析；scorer 会读取 `images` 中第一张
 图片的真实宽高，将预测恢复为像素坐标，再与像素坐标 `ground_truth` 比较。
-阴性样本使用 `"ground_truth": "[]"`：GT 与预测均为空时指标记为 1；只有一侧
-为空时指标记为 0。
+实现严格复现 SmartPath-R1：不使用置信度，按模型生成框的顺序累计 TP/FP，逐图
+构建插值 PR 曲线并计算 AP50，最后对已评分图片的 AP50 求算术平均。GT 或预测框为空
+时该图 AP50 为 0；完全缺失的预测记录不进入均值。像素级分割和 MedSAM Dice 暂未实现。
 
 ```json
 [

@@ -43,7 +43,7 @@ manifest.yaml          run_config.yaml
 | `chaoyang` | Chaoyang 4-class colon patch | — |
 | `roi_cls` | ROI 分类 VQA | `by_task` |
 | `pathmmu` | pathmmu | `by_subset` |
-| `bbox_seg` | 检测/box 分割（SmartPath-R1 bbox 输出） | 逐样本 IoU/Dice/Precision/Recall |
+| `bbox_seg` | bbox 检测（SmartPath-R1 bbox 输出） | 逐图 AP50 的均值 |
 
 ## 单独推理
 

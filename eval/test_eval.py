@@ -181,11 +181,10 @@ class EvalTests(unittest.TestCase):
                 {"id": "partial", "prediction": "The lesion is at [50, 0, 150, 100]."},
             ]
             result = bbox_seg_scorer.score(gt, pred)
-        self.assertAlmostEqual(result["details"][0]["scores"]["iou"], 1.0)
-        self.assertAlmostEqual(result["details"][1]["scores"]["iou"], 1 / 3)
-        self.assertAlmostEqual(result["details"][1]["scores"]["dice"], 0.5)
-        self.assertEqual(result["details"][2]["scores"]["iou"], 0.0)
-        self.assertEqual(result["counts"]["n_missing_or_invalid"], 1)
+        self.assertAlmostEqual(result["scores"]["ap50"], 0.5)
+        self.assertEqual(result["counts"]["n_scored"], 2)
+        self.assertEqual(result["counts"]["n_missing_predictions"], 1)
+        self.assertEqual(result["counts"]["n_missing_or_invalid"], 0)
 
     def test_bbox_seg_restores_qwen_norm1000_to_image_pixels(self):
         from PIL import Image
@@ -199,8 +198,7 @@ class EvalTests(unittest.TestCase):
             )
 
         self.assertEqual(result["details"][0]["prediction_boxes"], [[0.0, 0.0, 1000.0, 1000.0]])
-        self.assertAlmostEqual(result["scores"]["iou"], 1.0)
-        self.assertAlmostEqual(result["scores"]["dice"], 1.0)
+        self.assertAlmostEqual(result["scores"]["ap50"], 1.0)
 
     def test_bbox_seg_empty_ground_truth(self):
         gt = [
@@ -220,9 +218,25 @@ class EvalTests(unittest.TestCase):
             gt[1]["images"] = [str(image_path)]
             result = bbox_seg_scorer.score(gt, pred)
 
-        self.assertEqual(result["details"][0]["scores"]["iou"], 1.0)
-        self.assertEqual(result["details"][1]["scores"]["iou"], 0.0)
+        self.assertEqual(result["scores"]["ap50"], 0.0)
         self.assertEqual(result["counts"]["n_empty_ground_truth"], 2)
+
+    def test_bbox_detection_ap50_uses_generation_order(self):
+        from PIL import Image
+
+        with tempfile.TemporaryDirectory() as tmp:
+            image_path = Path(tmp) / "square.png"
+            Image.new("RGB", (1000, 1000)).save(image_path)
+            gt = [{"id": "sample", "images": [str(image_path)], "ground_truth": [[0, 0, 100, 100]]}]
+            pred = [
+                {
+                    "id": "sample",
+                    "prediction": "[[500, 500, 600, 600], [0, 0, 100, 100]]",
+                }
+            ]
+            result = bbox_seg_scorer.score(gt, pred)
+
+        self.assertAlmostEqual(result["scores"]["ap50"], 0.5)
 
     def test_plot_load_series(self):
         from eval.plot_curves import load_series_from_run_dir
