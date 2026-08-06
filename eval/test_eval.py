@@ -221,6 +221,19 @@ class EvalTests(unittest.TestCase):
         self.assertEqual(result["scores"]["ap50"], 0.0)
         self.assertEqual(result["counts"]["n_empty_ground_truth"], 2)
 
+    def test_bbox_seg_malformed_ground_truth_matches_smartpath(self):
+        result = bbox_seg_scorer.score(
+            [{"id": "malformed", "ground_truth": "not a bounding box"}],
+            [{"id": "malformed", "prediction": "[]"}],
+        )
+
+        self.assertEqual(result["scores"]["ap50"], 0.0)
+        self.assertEqual(result["counts"]["n_empty_ground_truth"], 1)
+
+    def test_bbox_seg_degenerate_box_matches_smartpath(self):
+        self.assertEqual(bbox_seg_scorer.parse_boxes("[[1, 1, 1, 2]]"), [[1.0, 1.0, 1.0, 2.0]])
+        self.assertEqual(bbox_seg_scorer.calculate_ap50([[1, 1, 1, 2]], [[1, 1, 1, 2]]), 0.0)
+
     def test_bbox_detection_ap50_uses_generation_order(self):
         from PIL import Image
 

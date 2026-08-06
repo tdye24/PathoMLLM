@@ -20,22 +20,19 @@ _BOX = re.compile(
 _REMOTE_PREFIXES = ("s3://", "obs://")
 
 
-def _valid_box(value: Any) -> list[float] | None:
+def _numeric_box(value: Any) -> list[float] | None:
+    """Return a numeric four-tuple, matching SmartPath-R1's box extractor."""
     if not isinstance(value, (list, tuple)) or len(value) != 4:
         return None
     try:
-        box = [float(x) for x in value]
+        return [float(x) for x in value]
     except (TypeError, ValueError):
         return None
-    x1, y1, x2, y2 = box
-    if x2 <= x1 or y2 <= y1:
-        return None
-    return box
 
 
 def _boxes_from_object(value: Any) -> list[list[float]]:
     """Extract boxes from JSON-like values without treating arbitrary numbers as boxes."""
-    box = _valid_box(value)
+    box = _numeric_box(value)
     if box is not None:
         return [box]
     if isinstance(value, dict):
@@ -69,7 +66,7 @@ def parse_boxes(value: Any) -> list[list[float]]:
                 continue
             if boxes:
                 return boxes
-    return [[float(x) for x in match] for match in _BOX.findall(text) if _valid_box(match)]
+    return [[float(x) for x in match] for match in _BOX.findall(text)]
 
 
 def _is_explicit_empty(value: Any) -> bool:
@@ -134,7 +131,7 @@ def box_metrics(reference: list[float], prediction: list[float]) -> dict[str, fl
     ref_area, pred_area = _area(reference), _area(prediction)
     union = ref_area + pred_area - intersection
     return {
-        "iou": intersection / union if union else 0.0,
+        "iou": intersection / union if union > 0 else 0.0,
         "dice": 2 * intersection / (ref_area + pred_area) if ref_area + pred_area else 0.0,
         "precision": intersection / pred_area if pred_area else 0.0,
         "recall": intersection / ref_area if ref_area else 0.0,
@@ -198,8 +195,6 @@ def score(gt: list[dict[str, Any]], pred: list[dict[str, Any]]) -> dict[str, Any
         sample_id = str(sample["id"])
         ground_truth = sample.get("ground_truth", sample.get("boxes", sample.get("bbox")))
         references = parse_boxes(ground_truth)
-        if not references and not _is_explicit_empty(ground_truth):
-            raise ValueError(f"Sample {sample_id} has no valid ground-truth box")
         empty_ground_truth += not references
         prediction_record = pred_by_id.get(sample_id)
         if prediction_record is None:
