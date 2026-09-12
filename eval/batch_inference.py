@@ -18,6 +18,11 @@ ROOT = Path(__file__).resolve().parent.parent
 TRAIN_DIR = ROOT / "train"
 PLUGIN = TRAIN_DIR / "pathomllm_plugin.py"
 
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from eval.metrics.postprocess import extract_answer_text
+
 
 def _bootstrap_plugin() -> None:
     """Load pathomllm_plugin (FSDP shim + s3:// image patch) before swift imports."""
@@ -52,10 +57,7 @@ def setup_logging() -> None:
 
 
 def extract_answer(text: str) -> str:
-    stripped = text.strip()
-    if "</think>" in stripped:
-        return stripped.split("</think>", 1)[-1].strip()
-    return stripped
+    return extract_answer_text(text)
 
 
 def count_image_markers(messages: List[Dict[str, Any]]) -> int:
@@ -153,7 +155,10 @@ def run_inference(args: argparse.Namespace, samples=None) -> None:
                 image_paths = resolve_images(sample)
                 validate_image_tags(sample["messages"], image_paths, str(sample_id))
                 infer_messages = filter_inference_messages(sample["messages"])
-                chat_template_kwargs = resolve_chat_template_kwargs(sample)
+                chat_template_kwargs = resolve_chat_template_kwargs(sample) or {}
+                # Qwen3.5 reads this per-request switch when constructing the
+                # assistant response prefix (<think> vs empty thinking block).
+                chat_template_kwargs["enable_thinking"] = args.enable_thinking
 
                 infer_request = InferRequest(
                     messages=infer_messages,
@@ -229,6 +234,11 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument("--input_json", type=str, default="eval/data/bcnb.json")
     parser.add_argument("--output_json", type=str, default="eval/results/pred.json")
     parser.add_argument("--limit_samples", type=int, default=None)
+    parser.add_argument(
+        "--enable_thinking",
+        action="store_true",
+        help="Enable Qwen3.5 thinking mode through chat_template_kwargs",
+    )
     parser.add_argument(
         "--attn_implementation",
         choices=["sdpa", "flash_attention_2", "eager"],

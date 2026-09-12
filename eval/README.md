@@ -14,6 +14,18 @@ python -m eval.run_eval \
   --run_config eval/manifests/run_sft.yaml
 ```
 
+Thinking 模式可以在 run config 顶层设置 `enable_thinking: true`，也可以在命令行临时开启：
+
+```bash
+python -m eval.run_eval \
+  --manifest eval/manifests/benchmarks.yaml \
+  --run_config eval/manifests/run_sft.yaml \
+  --enable_thinking
+```
+
+预测文件中的 `raw_prediction` 保留完整模型输出（包括 reasoning 和标签），
+`prediction` 则提取 `<answer>...</answer>` 内的正文供 scorer 使用；无标签的旧输出保持兼容。
+
 ## 架构
 
 ```

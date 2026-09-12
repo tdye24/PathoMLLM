@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 from eval.manifest import EVAL_DIR, load_manifest, load_run_config, sample_entries
-from eval.metrics.postprocess import postprocess_prediction, postprocess_reference
+from eval.metrics.postprocess import extract_answer_text, postprocess_prediction, postprocess_reference
 from eval.metrics.registry import compute_metrics
 from eval.run_eval import _inference_argv
 from eval.score import join_records, score_dataset
@@ -41,6 +41,15 @@ class EvalTests(unittest.TestCase):
         self.assertEqual(postprocess_prediction("a. normal", "mcq"), "A")
         self.assertEqual(postprocess_prediction("选C", "mcq"), "C")
         self.assertEqual(postprocess_prediction("The correct option is: **D**", "mcq"), "D")
+
+    def test_extract_answer_text(self):
+        self.assertEqual(
+            extract_answer_text("<think>reasoning</think>\n\n<answer>\nB\n</answer>"),
+            "B",
+        )
+        self.assertEqual(extract_answer_text("<answer>\nNormal tissue\n</answer>"), "Normal tissue")
+        self.assertEqual(extract_answer_text("legacy untagged output"), "legacy untagged output")
+        self.assertEqual(extract_answer_text("<think>x</think>legacy answer"), "legacy answer")
 
     def test_sampling(self):
         m = {"seed": 42, "sample_ratio": 0.5}
@@ -124,6 +133,15 @@ class EvalTests(unittest.TestCase):
                 "sdpa",
             ],
         )
+
+    def test_inference_argv_with_thinking(self):
+        run_cfg = {
+            "model_id": "/models/base",
+            "checkpoint_arg": "--adapter_dir",
+            "extra_args": {"attn_implementation": "sdpa"},
+        }
+        argv = _inference_argv(run_cfg, "/ckpts/checkpoint-100", "out.json", enable_thinking=True)
+        self.assertIn("--enable_thinking", argv)
 
     def test_inference_argv_merged_no_adapter(self):
         run_cfg = {

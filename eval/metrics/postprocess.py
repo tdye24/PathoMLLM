@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 
 _ANSWER = re.compile(r"<answer>\s*(.*?)\s*</answer>", re.I | re.S)
-_THINK = "</think>"
+_THINK = re.compile(r"</think>", re.I)
 
 # Prefer explicit MCQ markers; avoid Unicode \\b (CJK chars are \\w and break "选项A.").
 _MCQ_PATTERNS = (
@@ -18,12 +18,18 @@ _MCQ_PATTERNS = (
 )
 
 
-def postprocess_prediction(text: str, mode: str) -> str | None:
+def extract_answer_text(text: str) -> str:
+    """Return the final answer body while preserving untagged legacy outputs."""
     body = text.strip()
-    if _THINK in body:
-        body = body.split(_THINK, 1)[-1].strip()
+    if _THINK.search(body):
+        body = _THINK.split(body, maxsplit=1)[-1].strip()
     if m := _ANSWER.search(body):
-        body = m.group(1).strip()
+        return m.group(1).strip()
+    return body
+
+
+def postprocess_prediction(text: str, mode: str) -> str | None:
+    body = extract_answer_text(text)
 
     if mode == "mcq":
         if len(body) == 1 and body.isalpha():
