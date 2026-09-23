@@ -33,6 +33,11 @@ def parse_args() -> argparse.Namespace:
         help="Torch dtype used while loading the base model.",
     )
     parser.add_argument("--device-map", default="auto", help="Transformers device_map value.")
+    parser.add_argument(
+        "--safe-merge",
+        action="store_true",
+        help="Check adapter weights for NaNs before merging. Slower, but useful for debugging.",
+    )
     parser.add_argument("--trust-remote-code", action="store_true", help="Enable custom model code.")
     return parser.parse_args()
 
@@ -51,7 +56,7 @@ def resolve_dtype(name: str):
 
 def load_base_model(args: argparse.Namespace):
     common_kwargs = {
-        "torch_dtype": resolve_dtype(args.dtype),
+        "dtype": resolve_dtype(args.dtype),
         "device_map": args.device_map,
         "trust_remote_code": args.trust_remote_code,
     }
@@ -94,7 +99,7 @@ def main() -> None:
     model = PeftModel.from_pretrained(base_model, args.lora_path)
 
     print("[merge_lora] Merging adapter into base weights.")
-    model = model.merge_and_unload()
+    model = model.merge_and_unload(safe_merge=args.safe_merge)
 
     print(f"[merge_lora] Saving merged model to: {output_dir}")
     model.save_pretrained(output_dir, safe_serialization=True)
