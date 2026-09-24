@@ -9,6 +9,37 @@ ms-swift applies loss_scale at the assistant-message level, so a single
 assistant message containing both tags is split into separate assistant
 messages with different loss weights. Samples without a think block are kept
 and only the answer block is weighted.
+
+Example:
+  python scripts/convert_loss_scale.py \
+    --input data/msr_swift.jsonl \
+    --output data/msr_swift_loss_scale.jsonl \
+    --think_loss_scale 0.5 \
+    --answer_loss_scale 1.0 \
+    --overwrite
+
+Input assistant message:
+  {"role": "assistant",
+   "content": "<think>reasoning</think>\n\n<answer>A. xxx</answer>"}
+
+Output assistant messages:
+  {"role": "assistant",
+   "content": "<think>reasoning</think>\n\n",
+   "loss_scale": 0.5}
+  {"role": "assistant",
+   "content": "<answer>A. xxx</answer>",
+   "loss_scale": 1.0}
+
+If a sample has no positive reasoning path and contains only an answer block,
+the script keeps that sample and only applies answer_loss_scale:
+  {"role": "assistant",
+   "content": "<answer>B. xxx</answer>",
+   "loss_scale": 1.0}
+
+When training with non-binary loss weights such as 0.5 or 0.3, pass the
+following arguments to ms-swift:
+  --loss_scale default
+  --is_binary_loss_scale false
 """
 
 from __future__ import annotations
@@ -69,9 +100,14 @@ def tag_body_is_empty(block: str) -> bool:
     return not body
 
 
-def scaled_message(message: dict[str, Any], content: str, loss_scale: float) -> dict[str, Any]:
+def scaled_message(
+    message: dict[str, Any],
+    content: str,
+    loss_scale: float,
+    strip_content: bool = True,
+) -> dict[str, Any]:
     converted = dict(message)
-    converted["content"] = content.strip()
+    converted["content"] = content.strip() if strip_content else content
     converted["loss_scale"] = loss_scale
     return converted
 
@@ -98,18 +134,24 @@ def split_assistant_message(
         stats["untagged_assistant_messages"] += 1
         return [scaled_message(message, content, untagged_loss_scale)], stats
 
-    for match in matches:
+    for index, match in enumerate(matches):
         tag = match.group(1).lower()
         block = match.group(0).strip()
+        next_match = matches[index + 1] if index + 1 < len(matches) else None
+        separator = ""
+        if next_match is not None:
+            between = content[match.end(): next_match.start()]
+            if between and between.strip() == "":
+                separator = between
         if tag == "think":
             if drop_empty_think and tag_body_is_empty(block):
                 stats["dropped_empty_think"] += 1
                 continue
             stats["think_blocks"] += 1
-            pieces.append(scaled_message(message, block, think_loss_scale))
+            pieces.append(scaled_message(message, block + separator, think_loss_scale, strip_content=False))
         elif tag == "answer":
             stats["answer_blocks"] += 1
-            pieces.append(scaled_message(message, block, answer_loss_scale))
+            pieces.append(scaled_message(message, block + separator, answer_loss_scale, strip_content=False))
 
     if not pieces:
         stats["untagged_assistant_messages"] += 1
