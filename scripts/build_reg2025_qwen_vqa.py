@@ -47,10 +47,14 @@ Report:
 
 Requirements:
 1. Generate 3 to {max_turns} QA turns.
-2. Include organ, procedure, and main diagnosis if available.
-3. Ask organ-specific grading, score, quantitative, note, or status questions only when explicitly stated.
-4. Do not ask about unmentioned fields.
-5. Keep answers short and faithful to the report.
+2. Write questions as image-based VQA questions about the whole-slide image, slide, specimen, or case.
+3. Do not mention the report, source text, or label in any question.
+4. Do not use question phrasing like "described in the report", "mentioned in the report", "stated in the report", or "listed in the report".
+5. Ask one concept per turn. Avoid combining organ and procedure into one question.
+6. Include organ, specimen/procedure, and main diagnosis if available.
+7. Ask organ-specific grading, score, quantitative, note, or status questions only when explicitly stated.
+8. Do not ask about unmentioned fields.
+9. Keep answers short and faithful to the report.
 
 Return exactly:
 {{
@@ -71,7 +75,10 @@ Rules:
 1. Keep only turns explicitly supported by the report.
 2. Remove turns about unmentioned fields.
 3. Correct any changed number, score, percentage, grade, diagnosis, organ, procedure, or note.
-4. Keep 3 to {max_turns} turns when possible.
+4. Rewrite questions so they refer to the whole-slide image, slide, specimen, or case, not the report.
+5. Remove or rewrite any question using phrases like "described in the report", "mentioned in the report", "stated in the report", or "listed in the report".
+6. Prefer one concept per question.
+7. Keep 3 to {max_turns} turns when possible.
 
 Return exactly:
 {{
@@ -118,6 +125,8 @@ def turns_from(obj: dict[str, Any], max_turns: int) -> list[dict[str, str]]:
             continue
         question = clean(item.get("question"))
         answer = clean(item.get("answer"))
+        if re.search(r"\b(report|source text|label|described|mentioned|stated|listed)\b", question, re.I):
+            continue
         if question and answer:
             turns.append({"question": question, "answer": answer})
         if len(turns) >= max_turns:
